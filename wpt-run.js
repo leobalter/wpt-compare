@@ -2,6 +2,9 @@ const path = require('path');
 const {execSync: run} = require('child_process');
 const fs = require('fs');
 
+const today = new Date();
+const date = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+
 const { argv } = require('yargs')
   .scriptName("wpt-run")
   .usage('$0 [args] [...files]')
@@ -14,7 +17,8 @@ const { argv } = require('yargs')
     },
     l: {
       alias: 'log',
-      describe: 'the log file to be saved',
+      default: `log-${date}.json`,
+      describe: 'the log file to be saved in the logs folder',
       type: 'string',
     },
     b: {
@@ -52,18 +56,14 @@ const defaultFiles = [
 
 const files = argv._.join(' ') || defaultFiles.join('\\\n  ');
 
-const logs = [];
-
-var today = new Date();
-var date = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-
 run('mkdir -p logs');
 run('mkdir -p temp');
 
 const options = {
-  '--log-wptreport': undefined,
+  '--log-wptreport': path.resolve('logs', log),
   '--headless': undefined,
 };
+const optionsStr = Object.entries(options).flat().join(' ');
 
 // It would be beautiful if this could just work. I have no idea how wpt can actually include something
 // let include = '';
@@ -87,15 +87,6 @@ if (include) {
 }
 
 console.log(`/-------> ${browser} ${include || ''}`);
-const log = `log-${browser}-${date}.json`;
-const absolute = path.resolve('logs', log);
-
-logs.push(log);
-
-options['--log-wptreport'] = absolute;
-
-const optionsStr = Object.entries(options).flat().join(' ');
-
 const cmd = `./wpt run ${optionsStr} ${browser} ${files}`;
 
 if (include) {
@@ -123,4 +114,4 @@ if (include) {
   console.log('harness restored');
 }
 
-console.log(`\nNew logs:\n - ${logs.join('\n')}`);
+console.log(`\nNew log saved at: ${log}`);
