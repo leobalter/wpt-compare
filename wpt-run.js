@@ -55,9 +55,7 @@ const defaultFiles = [
 ];
 
 const files = argv._.join(' ') || defaultFiles.join('\\\n  ');
-
-run('mkdir -p logs');
-run('mkdir -p temp');
+const { log, include, browser } = argv; 
 
 const options = {
   '--log-wptreport': path.resolve('logs', log),
@@ -80,7 +78,6 @@ const optionsStr = Object.entries(options).flat().join(' ');
 const harnessFile = path.resolve(argv.wptPath, 'resources', 'testharness.js');
 run(`cp ${harnessFile} temp/`);
 
-const { include, browser } = argv; 
 let includeData = '';
 if (include) {
   includeData = fs.readFileSync(include);
