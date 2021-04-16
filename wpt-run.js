@@ -1,5 +1,6 @@
 const path = require('path');
 const {execSync: run} = require('child_process');
+const fs = require('fs');
 
 const { argv } = require('yargs')
   .scriptName("wpt-run")
@@ -17,15 +18,18 @@ const { argv } = require('yargs')
       type: 'string',
     },
     b: {
-      alias: 'browsers',
+      alias: 'browser',
       default: 'chrome',
-      describe: 'browsers to run tests',
-      type: 'array'
+      describe: 'browser to run tests',
+      type: 'string'
+    },
+    i: {
+      alias: 'include',
+      describe: 'file to include to wpt',
+      type: 'string'
     }
   })
   .help();
-
-const browsers = argv.browsers;
 
 const defaultFiles = [
   'content-security-policy/nonce-hiding',
@@ -54,16 +58,54 @@ var today = new Date();
 var date = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
 
 run('mkdir -p logs');
+run('mkdir -p temp');
 
-for (browser of browsers) {
-  console.log(`/------- ${browser} -------/`);
-  const log = `log-${browser}-${date}.json`;
-  const absolute = path.resolve('logs', log);
+const options = {
+  '--log-wptreport': undefined,
+  '--headless': undefined,
+};
 
-  logs.push(log);
+// It would be beautiful if this could just work. I have no idea how wpt can actually include something
+// let include = '';
+//
+// if (argv.include) {
+//   include = `--include=${argv.include}`;
+// }
+//
+// if (argv.include) {
+//   options['--include'] = path.resolve(argv.include);
+// }
 
-  const cmd = `./wpt run --headless --log-wptreport ${absolute} ${browser} ${files}`;
+// save a quick backup
+const harnessFile = path.resolve(argv.wptPath, 'resources', 'testharness.js');
+run(`cp ${harnessFile} temp/`);
 
+const { include, browser } = argv; 
+let includeData = '';
+if (include) {
+  includeData = fs.readFileSync(include);
+}
+
+console.log(`/-------> ${browser} ${include || ''}`);
+const log = `log-${browser}-${date}.json`;
+const absolute = path.resolve('logs', log);
+
+logs.push(log);
+
+options['--log-wptreport'] = absolute;
+
+const optionsStr = Object.entries(options).flat().join(' ');
+
+const cmd = `./wpt run ${optionsStr} ${browser} ${files}`;
+
+if (include) {
+  fs.appendFileSync(harnessFile, includeData);
+}
+
+console.log(cmd);
+console.log('...');
+
+try {
   run(
     cmd,
     {
@@ -71,8 +113,14 @@ for (browser of browsers) {
       cwd: argv.wptPath,
     }
   );
-
-  console.log('\n');
+} catch(e) {
+  console.log('failures detected! meep!');
 }
 
-console.log(`New logs:\n - ${logs.join('\n')}`);
+// Restore harness
+if (include) {
+  run(`cp temp/${path.basename(harnessFile)} ${harnessFile}`);
+  console.log('harness restored');
+}
+
+console.log(`\nNew logs:\n - ${logs.join('\n')}`);

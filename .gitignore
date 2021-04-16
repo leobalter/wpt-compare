@@ -18,3 +18,5 @@ Thumbs.db
 .Trashes
 
 .nyc_output
+
+logs/
