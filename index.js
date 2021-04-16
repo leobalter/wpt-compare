@@ -11,19 +11,11 @@ const { argv } = require('yargs')
 
     return true;
   })
-  .options({
-    p: {
-      alias: 'wpt-path',
-      default: '.',
-      describe: 'the path location of wpt',
-      type: 'string',
-    }
-  })
   .help();
 
 const files = {
-  a: path.join('.', argv.wptPath, argv._[0]),
-  b: path.join('.', argv.wptPath, argv._[1]),
+  a: path.resolve(argv._[0]),
+  b: path.resolve(argv._[1]),
 };
 
 const data = {
@@ -35,13 +27,12 @@ const parsed = {
   meta: {
     files,
     args: argv._,
-    'wpt-path': argv.wptPath,
   }
 };
 
 data.a.results.reduce((reduced, {test, subtests}) => {
   const table = subtests.reduce((obj, {name, status}) => {
-    obj[name] = [ status, 'wat' ];
+    obj[name] = [ status, 'no completion' ];
     return obj;
   }, {});
 

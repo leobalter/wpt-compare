@@ -59,7 +59,7 @@ const { log, include, browser } = argv;
 
 const options = {
   '--log-wptreport': path.resolve('logs', log),
-  '--headless': undefined,
+  // '--headless': undefined,
 };
 const optionsStr = Object.entries(options).flat().join(' ');
 

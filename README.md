@@ -34,7 +34,6 @@ wpt-compare <file-a> <file-b> [args]
 
 Options:
       --version   Show version number                                  [boolean]
-  -p, --wpt-path  the path location of wpt               [string] [default: "."]
       --help      Show help                                            [boolean]
 ```
 
