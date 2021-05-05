@@ -30,23 +30,26 @@ const parsed = {
   }
 };
 
-data.a.results.reduce((reduced, {test, subtests}) => {
-  const table = subtests.reduce((obj, {name, status}) => {
-    obj[name] = [ status, 'no completion' ];
-    return obj;
-  }, {});
+data.a.results.forEach(({test, subtests}) => {
+  const parsedTest = {};
 
-  reduced[test] = table;
-  return reduced;
-}, parsed);
+  subtests.forEach(({name, status}) => parsedTest[name] = [ status, 'no completion' ]);
 
-data.b.results.reduce((reduced, {test, subtests}) => {
-  const table = subtests.reduce((obj, {name, status}) => {
-    obj[name][1] = status;
-    return obj;
-  }, reduced[test]);
+  parsed[test] = parsedTest;
+});
 
-  return reduced;
-}, parsed);
+data.b.results.forEach(({test, subtests}) => {
+  const parsedTest = parsed[test];
+
+  subtests.forEach(({name, status, message}) => {
+    const entry = parsedTest[name];
+
+    entry[1] = status;
+
+    if (status !== 'PASS' && message) {
+      entry[2] = message;
+    }
+  });
+});
 
 console.log(JSON.stringify(parsed, null, 4));

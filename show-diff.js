@@ -27,20 +27,20 @@ Object.entries(data).forEach(([name, result]) => {
   const dirname = path.dirname(name);
   const diff = [];
 
-  if (!dirnames.includes(dirname)) {
-    dirnames.push(dirname);
-    console.log(`
---------- ${dirname} ---------
-    `);
-  }
-  Object.entries(result).forEach(([assertion, [ a, b ]]) => {
+//   if (!dirnames.includes(dirname)) {
+//     dirnames.push(dirname);
+//     console.log(`
+// --------- ${dirname} ---------
+//     `);
+//   }
+  Object.entries(result).forEach(([assertion, [ a, b, c = '' ]]) => {
     if (a !== 'PASS' || a !== b) {
-      diff.push({assertion, a, b});
+      diff.push({assertion, a, b, c});
     }
   });
 
   if (diff.length) {
     console.log(name);
-    console.table(diff);
+    console.log(diff);
   }
 });
