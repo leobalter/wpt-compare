@@ -60,6 +60,11 @@ CustomElementRegistry.prototype.define = function define(this: CustomElementRegi
             'NotSupportedError: '
         );
     }
+    if (tagName === null) {
+        throw new DOMException(
+            `Failed to execute 'define' on 'CustomElementRegistry': "null" is not a valid custom element name`
+        );
+    };
     nativeGet.call(this, tagName); // SyntaxError if The provided name is not a valid custom element name.
     tagName = tagName.toLowerCase();
     if (_definitionsByTag.get(tagName) !== undefined) {

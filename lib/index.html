@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script src="./registry.js"></script>
+    <script>
+        // Tests
+
+        function assert_throws_dom(error, fn, msg) {
+            try {
+                fn();
+            } catch (e) {
+                if (e.constructor.name === 'DOMException') {
+                    console.log(`pass: ${msg}`);
+                } else {
+                    console.log(`fail: ${msg}`);
+                }
+            }
+        }
+        class MyCustomElement extends HTMLElement {};
+
+        assert_throws_dom('SyntaxError', function () { customElements.define(null, MyCustomElement); },
+            'customElements.define must throw a SyntaxError if the tag name is null');
+        assert_throws_dom('SyntaxError', function () { customElements.define('', MyCustomElement); },
+            'customElements.define must throw a SyntaxError if the tag name is empty');
+        assert_throws_dom('SyntaxError', function () { customElements.define('abc', MyCustomElement); },
+            'customElements.define must throw a SyntaxError if the tag name does not contain "-"');
+        assert_throws_dom('SyntaxError', function () { customElements.define('a-Bc', MyCustomElement); },
+            'customElements.define must throw a SyntaxError if the tag name contains an upper case letter');
+    
+        var builtinTagNames = [
+            'annotation-xml',
+            'color-profile',
+            'font-face',
+            'font-face-src',
+            'font-face-uri',
+            'font-face-format',
+            'font-face-name',
+            'missing-glyph'
+        ];
+    
+        for (var tagName of builtinTagNames) {
+            assert_throws_dom('SyntaxError', function () { customElements.define(tagName, MyCustomElement); },
+                'customElements.define must throw a SyntaxError if the tag name is "' + tagName + '"');
+        }
+    </script>
+    hi!
+</body>
+</html>
