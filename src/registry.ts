@@ -1,5 +1,5 @@
 const NativeHTMLElement = window.HTMLElement;
-const { define: nativeDefine } = window.customElements;
+const { define: nativeDefine, whenDefined: nativeWhenDefined, get: nativeGet } = window.customElements;
 const nativeRegistry = window.customElements;
 const { defineProperties } = Object;
 
@@ -54,19 +54,25 @@ function createDefinitionRecord(constructor: CustomElementConstructor): Definiti
 }
 
 // patch for the global registry define mechanism
-CustomElementRegistry.prototype.define = function define(this: CustomElementRegistry, tagName: string, constructor: CustomElementConstructor): void {
+CustomElementRegistry.prototype.define = function define(this: CustomElementRegistry, tagName: string, constructor: CustomElementConstructor, options?: ElementDefinitionOptions): void {
+    if (options && options.extends) {
+        throw new DOMException(
+            'NotSupportedError: '
+        );
+    }
+    nativeGet.call(this, tagName); // SyntaxError if The provided name is not a valid custom element name.
     tagName = tagName.toLowerCase();
     if (_definitionsByTag.get(tagName) !== undefined) {
         throw new DOMException(
             `Failed to execute 'define' on 'CustomElementRegistry': the name "${tagName}" has already been used with this registry`
         );
     }
+    const definition = getDefinitionForConstructor(constructor);
     if (_definitionsByClass.get(constructor) !== undefined) {
         throw new DOMException(
             `Failed to execute 'define' on 'CustomElementRegistry': this constructor has already been used with this registry`
         );
     }
-    const definition = getDefinitionForConstructor(constructor);
     _definitionsByTag.set(tagName, definition);
     _definitionsByClass.set(constructor, definition);
     let PivotCtor = _pivotCtorByTag.get(tagName);
@@ -100,24 +106,26 @@ CustomElementRegistry.prototype.define = function define(this: CustomElementRegi
     }
 }
 
-CustomElementRegistry.prototype.get = function get(tagName: string): any {
-    return _definitionsByTag.get(tagName)?.UserCtor;
-};
+CustomElementRegistry.prototype.get = function get(this: CustomElementRegistry, tagName: string): any {
+    return nativeGet.apply(this, arguments) && _definitionsByTag.get(tagName)?.UserCtor;
+}
 
-CustomElementRegistry.prototype.whenDefined = function whenDefined(tagName: string): Promise<CustomElementRegistry> {
-    let promise = _definedPromises.get(tagName);
-    if (!promise) {
-        const definition = _definitionsByTag.get(tagName);
-        if (definition) {
-            return Promise.resolve(definition.UserCtor);
+CustomElementRegistry.prototype.whenDefined = function whenDefined(this: CustomElementRegistry, tagName: string): Promise<CustomElementConstructor> {
+    return nativeWhenDefined.apply(this, arguments).then(() => {
+        let promise = _definedPromises.get(tagName);
+        if (!promise) {
+            const definition = _definitionsByTag.get(tagName);
+            if (definition) {
+                return Promise.resolve(definition.UserCtor);
+            }
+            let resolve: (constructor: CustomElementConstructor) => void;
+            promise = new Promise((r) => (resolve = r));
+            _definedPromises.set(tagName, promise);
+            _definedResolvers.set(tagName, resolve);
         }
-        let resolve;
-        promise = new Promise((r) => (resolve = r));
-        _definedPromises.set(tagName, promise);
-        _definedResolvers.set(tagName, resolve);
-    }
-    return promise;
-};
+        return promise;
+    });
+}
 
 // User extends this HTMLElement, which returns the CE being upgraded
 let upgradingInstance: HTMLElement | undefined;
@@ -319,20 +327,13 @@ function internalUpgrade(instance: HTMLElement, registeredDefinition: Definition
 }
 
 function getDefinitionForConstructor(constructor: CustomElementConstructor): Definition {
+    if (!constructor || !constructor.prototype || typeof constructor.prototype !== 'object') {
+        throw new TypeError(`The referenced constructor is not a constructor.`);
+    }
     let definition = definitionForConstructor.get(constructor);
     if (!definition) {
         definition = createDefinitionRecord(constructor);
         definitionForConstructor.set(constructor, definition);
     }
     return definition;
-}
-
-export function getLWCPivot(tagName: string, constructor: CustomElementConstructor): CustomElementConstructor {
-    tagName = tagName.toLowerCase();
-    let PivotCtor = _pivotCtorByTag.get(tagName);
-    if (!PivotCtor) {
-        const definition = getDefinitionForConstructor(constructor);
-        PivotCtor = createPivotingClass(tagName, definition);
-    }
-    return PivotCtor;
 }
