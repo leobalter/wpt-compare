@@ -9,7 +9,7 @@
 <body>
     <script src="./registry.js"></script>
     <script>
-        // Tests
+        // testharness stub
 
         function assert_throws_dom(error, fn, msg) {
             try {
@@ -22,33 +22,70 @@
                 }
             }
         }
-        class MyCustomElement extends HTMLElement {};
 
-        assert_throws_dom('SyntaxError', function () { customElements.define(null, MyCustomElement); },
-            'customElements.define must throw a SyntaxError if the tag name is null');
-        assert_throws_dom('SyntaxError', function () { customElements.define('', MyCustomElement); },
-            'customElements.define must throw a SyntaxError if the tag name is empty');
-        assert_throws_dom('SyntaxError', function () { customElements.define('abc', MyCustomElement); },
-            'customElements.define must throw a SyntaxError if the tag name does not contain "-"');
-        assert_throws_dom('SyntaxError', function () { customElements.define('a-Bc', MyCustomElement); },
-            'customElements.define must throw a SyntaxError if the tag name contains an upper case letter');
-    
-        var builtinTagNames = [
-            'annotation-xml',
-            'color-profile',
-            'font-face',
-            'font-face-src',
-            'font-face-uri',
-            'font-face-format',
-            'font-face-name',
-            'missing-glyph'
-        ];
-    
-        for (var tagName of builtinTagNames) {
-            assert_throws_dom('SyntaxError', function () { customElements.define(tagName, MyCustomElement); },
-                'customElements.define must throw a SyntaxError if the tag name is "' + tagName + '"');
+        function assert_array_equals(a, b, msg) {
+            if (a.length !== b.length || typeof a.length !== 'number') {
+                console.log(`fail: wrong length ${msg}`);
+            }
+            try {
+                [].forEach.call(a, (item, index) => {
+                    if (item !== item) {
+                        // ignore, item is NaN
+                    } else if (item !== b[index]) {
+                        throw 1;
+                    }
+                });
+                console.log(`pass: ${msg}`);
+            } catch(e) {
+                console.log(`fail: ${msg}`);
+            }
         }
+
     </script>
-    hi!
+    <script>
+    // Tests
+        // class MyCustomElement extends HTMLElement {};
+        // 
+        // assert_throws_dom('SyntaxError', function () { customElements.define(null, MyCustomElement); },
+        //     'customElements.define must throw a SyntaxError if the tag name is null');
+        // assert_throws_dom('SyntaxError', function () { customElements.define('', MyCustomElement); },
+        //     'customElements.define must throw a SyntaxError if the tag name is empty');
+        // assert_throws_dom('SyntaxError', function () { customElements.define('abc', MyCustomElement); },
+        //     'customElements.define must throw a SyntaxError if the tag name does not contain "-"');
+        // assert_throws_dom('SyntaxError', function () { customElements.define('a-Bc', MyCustomElement); },
+        //     'customElements.define must throw a SyntaxError if the tag name contains an upper case letter');
+        // 
+        // var builtinTagNames = [
+        //     'annotation-xml',
+        //     'color-profile',
+        //     'font-face',
+        //     'font-face-src',
+        //     'font-face-uri',
+        //     'font-face-format',
+        //     'font-face-name',
+        //     'missing-glyph'
+        // ];
+        // 
+        // for (var tagName of builtinTagNames) {
+        //     assert_throws_dom('SyntaxError', function () { customElements.define(tagName, MyCustomElement); },
+        //         'customElements.define must throw a SyntaxError if the tag name is "' + tagName + '"');
+
+
+    class SomeCustomElement extends HTMLElement {};
+
+    var calls = [];
+    var OtherCustomElement = new Proxy(class extends HTMLElement {}, {
+        get: function (target, name) {
+            calls.push(name);
+            return target[name];
+        }
+    })
+
+    customElements.define('some-custom-element', SomeCustomElement);
+    assert_throws_dom('NotSupportedError', function () { customElements.define('some-custom-element', OtherCustomElement); },
+        'customElements.define must throw a NotSupportedError if the specified tag name is already used');
+    assert_array_equals(calls, [], 'customElements.define must validate the custom element name before getting the prototype of the constructor');
+    </script>
+    open the console
 </body>
 </html>
